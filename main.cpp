@@ -65,6 +65,7 @@ void GameMain()
 	{
 		startTime = timeGetTime();
 
+		//Ÿˆ‚Éˆ—‚ğ‘‚­
 
 		endTime = timeGetTime();
 		passTime = endTime - startTime;
