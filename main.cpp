@@ -1,6 +1,13 @@
 #include "main.h"
 #include "statusBar.h"
 #include "resources.h"
+#include "dialogBox.h"
+#include "bmp.h"
+#include "editBox.h"
+
+//マクロ定義
+#define HOT_KEY_ID 100001
+#define ID_MYTIMER 100002
 
 //共用グローバル変数
 HWND hWnd;
@@ -11,6 +18,8 @@ BOOL ENDFLAG = FALSE;
 HINSTANCE hInst;
 HDC WndHDC;
 HDC BackHDC;
+
+char copyText[10];
 
 //自作Wait関数
 void Wait(DWORD waitTime)
@@ -60,6 +69,9 @@ void GameMain()
 	timeGetDevCaps(&Caps, sizeof(TIMECAPS));
 	timeBeginPeriod(Caps.wPeriodMin);
 
+	//dlgCounterの初期化
+	dlgCounter = 0;
+
 	//メインループ
 	while (!ENDFLAG)
 	{
@@ -79,6 +91,11 @@ void GameMain()
 //ウィンドウプロシージャ
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 {
+	SYSTEMTIME sTime;
+	char str[256];
+	char *str_org = "現在の時刻は%2d時%2d分%2d秒です";
+
+
 	switch (msg)
 	{
 	case WM_COMMAND:
@@ -88,9 +105,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 			break;
 		case IDM_HELP:
 			break;
+		case ID_EDITBUTTON1:
+			GetWindowText(hEdit1, copyText, sizeof(copyText));
+			createClip(hWnd, copyText);
+			break;
+		case ID_EDITBUTTON2:
+			GetWindowText(hEdit2, copyText, sizeof(copyText));
+			createClip(hWnd, copyText);
+			break;
+		case ID_EDITBUTTON3:
+			GetWindowText(hEdit3, copyText, sizeof(copyText));
+			createClip(hWnd, copyText);
+			break;
+		case ID_FREEBOXBUTTON1:
+			GetWindowText(freeBox, copyText, sizeof(copyText));
+			createClip(hWnd, copyText);
+			break;
+		case ID_FREEBOXBUTTON2:
+			SetWindowText(freeBox, NULL);
+			break;
 		}
 		break;
 	case WM_CREATE:
+		SetWindowPos(hWnd, HWND_TOPMOST,200, 200, WID, HEI, SWP_NOREPOSITION);
+		SetTimer(hWnd, ID_MYTIMER, 300, NULL);
+		SetForegroundWindow(hWnd);
+		RegisterHotKey(hWnd, HOT_KEY_ID, MOD_CONTROL, '1');
+		createEditbox(hWnd, hInst);
+		createEditbutton(hWnd);
 		CreateMyStatus(hWnd, hInst);
 		break;
 	case WM_CLOSE:
@@ -98,7 +140,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
 			return 0;
 
 		break;
+	case WM_HOTKEY:
+		switch (wp)
+		{
+		case HOT_KEY_ID:
+			DialogBox(hInst, "MAINDLG", hWnd, (DLGPROC)MyDlgProc);
+			break;
+		}
+		break;
+	case WM_TIMER:
+		GetLocalTime(&sTime);
+		wsprintf(str, str_org, sTime.wHour, sTime.wMinute, sTime.wSecond);
+		SendMessage(hStatus, SB_SETTEXT, 255 | 0, (WPARAM)(LPSTR)str);
+		break;
 	case WM_DESTROY:
+		KillTimer(hWnd, ID_MYTIMER);
+		UnregisterHotKey(hWnd, HOT_KEY_ID);
 		PostQuitMessage(0);
 		ENDFLAG = TRUE;
 		return 0;
@@ -122,8 +179,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR pCmdLine, int
 	wc.hIcon = (HICON)LoadImage(NULL, MAKEINTRESOURCE(IDI_APPLICATION), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 	wc.hIconSm = wc.hIcon;
 	wc.hCursor = (HCURSOR)LoadImage(NULL, MAKEINTRESOURCE(IDC_ARROW), IMAGE_CURSOR, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
-	wc.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-	wc.lpszMenuName = "MENU";
+	wc.hbrBackground = (HBRUSH)CreateHatchBrush(HS_BDIAGONAL, 0XFF << 14);
+	wc.lpszMenuName = "IDD_MENU01";
 	wc.lpszClassName = TEXT("Default Class Name");
 
 	//ウィンドウクラスを登録する
